@@ -114,8 +114,7 @@ static UIColor *disabledColor;
     if (!self.isEnabled)
         [self drawDisabledViewInRect:rect];
     
-    else if (self.selected)
-        [self drawSelectedViewInRect:rect];
+    [self drawSelectedViewInRect:rect isSelected:self.isSelected];
 }
 
 - (void)drawThumbnailInRect:(CGRect)rect
@@ -169,13 +168,68 @@ static UIColor *disabledColor;
     CGContextFillRect(context, rect);
 }
 
-- (void)drawSelectedViewInRect:(CGRect)rect
+- (void)drawSelectedViewInRect:(CGRect)rect isSelected:(BOOL)isSelected
 {
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextSetFillColorWithColor(context, selectedColor.CGColor);
-    CGContextFillRect(context, rect);
+//    CGContextRef context = UIGraphicsGetCurrentContext();
+//    CGContextSetFillColorWithColor(context, selectedColor.CGColor);
+//    CGContextFillRect(context, rect);
     
-    [checkedIcon drawAtPoint:CGPointMake(CGRectGetMaxX(rect) - checkedIcon.size.width, CGRectGetMinY(rect))];
+//    [checkedIcon drawAtPoint:CGPointMake(CGRectGetMaxX(rect) - checkedIcon.size.width, CGRectGetMinY(rect))];
+
+    if (isSelected) {
+        CGContextRef context = UIGraphicsGetCurrentContext();
+        CGContextSetRGBStrokeColor(context, 0.157f, 0.694f, 0.275f, 1.0f);
+        CGContextSetLineWidth(context, 5);
+        CGContextStrokeRect(context, rect);
+    }
+    
+    // Set default values
+    CGFloat borderWidth = 1.0;
+    CGFloat checkmarkLineWidth = 1.2;
+    
+    UIColor *borderColor = [UIColor whiteColor];
+    UIColor *bodyColor = isSelected ? [UIColor colorWithRed:0.157f green:0.694f blue:0.275f alpha:1.0] :
+                                        [UIColor colorWithWhite:0 alpha:0.5];
+    UIColor *checkmarkColor = [UIColor whiteColor];
+    
+    // Set shadow
+//    self.layer.shadowColor = [[UIColor grayColor] CGColor];
+//    self.layer.shadowOffset = CGSizeMake(0, 0);
+//    self.layer.shadowOpacity = 0.6;
+//    self.layer.shadowRadius = 2.0;
+
+    CGRect checkmarkFrame = CGRectMake(self.bounds.size.width - 10 - 20, 10, 20, 20);
+    
+    // Border
+    [borderColor setFill];
+    [[UIBezierPath bezierPathWithOvalInRect:checkmarkFrame] fill];
+    
+    // Body
+    [bodyColor setFill];
+    [[UIBezierPath bezierPathWithOvalInRect:CGRectInset(checkmarkFrame, borderWidth, borderWidth)] fill];
+    
+    if (isSelected) {
+        // Checkmark
+//        UIBezierPath *checkmarkPath = [UIBezierPath bezierPath];
+//        checkmarkPath.lineWidth = checkmarkLineWidth;
+//        
+//        [checkmarkPath moveToPoint:CGPointMake(checkmarkFrame.origin.x + CGRectGetWidth(checkmarkFrame) * (6.0 / 24.0), checkmarkFrame.origin.y + CGRectGetHeight(checkmarkFrame) * (12.0 / 24.0))];
+//        [checkmarkPath addLineToPoint:CGPointMake(checkmarkFrame.origin.x + CGRectGetWidth(checkmarkFrame) * (10.0 / 24.0), checkmarkFrame.origin.y + CGRectGetHeight(checkmarkFrame) * (16.0 / 24.0))];
+//        [checkmarkPath addLineToPoint:CGPointMake(checkmarkFrame.origin.x + CGRectGetWidth(checkmarkFrame) * (18.0 / 24.0), checkmarkFrame.origin.y + CGRectGetHeight(checkmarkFrame) * (8.0 / 24.0))];
+//        
+//        [checkmarkColor setStroke];
+//        [checkmarkPath stroke];
+        
+        NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+        [style setAlignment:NSTextAlignmentCenter];
+        
+        UIFont* font = [UIFont fontWithName:@"Arial" size:12];
+        UIColor* textColor = [UIColor whiteColor];
+        NSDictionary* stringAttrs = @{ NSFontAttributeName : font, NSForegroundColorAttributeName : textColor, NSParagraphStyleAttributeName : style};
+        NSAttributedString* attrStr = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"%d", self.tag + 1] attributes:stringAttrs];
+        
+        [attrStr drawInRect:CGRectOffset(checkmarkFrame, 0, 3)];
+    }
 }
 
 

@@ -176,8 +176,9 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
             else
                 shouldShowAsset = YES;
             
-            if (shouldShowAsset)
-                [self.assets addObject:asset];
+            if (shouldShowAsset) {
+                [self.assets insertObject:asset atIndex:0];
+            }
         }
         else
         {
@@ -332,9 +333,9 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
     if (self.assets.count > 0)
     {
         [self.collectionView reloadData];
-        
-        if (self.collectionView.contentOffset.y <= 0)
-            [self.collectionView setContentOffset:CGPointMake(0, self.collectionViewLayout.collectionViewContentSize.height)];
+
+//        if (self.collectionView.contentOffset.y <= 0)
+//            [self.collectionView setContentOffset:CGPointMake(0, self.collectionViewLayout.collectionViewContentSize.height)];
     }
     else
     {
@@ -390,6 +391,7 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
     if ([self.picker.selectedAssets containsObject:asset])
     {
         cell.selected = YES;
+        cell.tag = [self.picker.selectedAssets indexOfObject:asset];
         [collectionView selectItemAtIndexPath:indexPath animated:NO scrollPosition:UICollectionViewScrollPositionNone];
     }
     
