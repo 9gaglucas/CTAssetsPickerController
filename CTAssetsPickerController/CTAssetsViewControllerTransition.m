@@ -59,7 +59,10 @@
     {
         CTAssetsViewController *fromVC      = (CTAssetsViewController *)[transitionContext viewControllerForKey:UITransitionContextFromViewControllerKey];
         CTAssetsPageViewController *toVC    = (CTAssetsPageViewController *)[transitionContext viewControllerForKey:UITransitionContextToViewControllerKey];
-        NSIndexPath *indexPath              = [NSIndexPath indexPathForItem:toVC.pageIndex inSection:0];
+        BOOL isDefaultGroup = [[fromVC.assetsGroup valueForProperty:ALAssetsGroupPropertyType] integerValue] == ALAssetsGroupSavedPhotos;
+
+        NSIndexPath *indexPath              = [NSIndexPath indexPathForItem:isDefaultGroup? toVC.pageIndex + 1 : toVC.pageIndex
+                                                                  inSection:0];
         
         UIView *cellView        = [fromVC.collectionView cellForItemAtIndexPath:indexPath];
         UIImageView *imageView  = (UIImageView *)[((UIViewController *)toVC.viewControllers[0]).view viewWithTag:1];
@@ -123,7 +126,10 @@
     {
         CTAssetsPageViewController *fromVC  = (CTAssetsPageViewController *)[transitionContext viewControllerForKey:UITransitionContextFromViewControllerKey];
         CTAssetsViewController *toVC        = (CTAssetsViewController *)[transitionContext viewControllerForKey:UITransitionContextToViewControllerKey];
-        NSIndexPath *indexPath              = [NSIndexPath indexPathForItem:fromVC.pageIndex inSection:0];
+        BOOL isDefaultGroup = [[toVC.assetsGroup valueForProperty:ALAssetsGroupPropertyType] integerValue] == ALAssetsGroupSavedPhotos;
+        
+        NSIndexPath *indexPath              = [NSIndexPath indexPathForItem:isDefaultGroup? fromVC.pageIndex + 1 : fromVC.pageIndex
+                                                                  inSection:0];
         
         // Scroll to index path
         [toVC.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionNone animated:NO];

@@ -316,6 +316,14 @@
 - (void)assetsPickerController:(CTAssetsPickerController *)picker didUnhighlightAsset:(ALAsset *)asset;
 
 
+/**
+ *  Tells the delegate that camera is pressed.
+ *
+ *  @param picker The controller object managing the assets picker interface.
+ *
+ */
+- (void)assetsPickerControllerDidPressCamera:(CTAssetsPickerController *)picker;
+
 
 /**
  *  @name Notifications

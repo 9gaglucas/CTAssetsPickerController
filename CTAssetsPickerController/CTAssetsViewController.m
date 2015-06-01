@@ -29,6 +29,7 @@
 #import "CTAssetsPickerController.h"
 #import "CTAssetsViewController.h"
 #import "CTAssetsViewCell.h"
+#import "CTAssetsCameraViewCell.h"
 #import "CTAssetsSupplementaryView.h"
 #import "CTAssetsPageViewController.h"
 #import "CTAssetsViewControllerTransition.h"
@@ -39,6 +40,7 @@
 
 
 NSString * const CTAssetsViewCellIdentifier = @"CTAssetsViewCellIdentifier";
+NSString * const CTAssetsCameraViewCellIdentifier = @"CTAssetsCameraViewCellIdentifier";
 NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryViewIdentifier";
 
 
@@ -58,7 +60,7 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 @property (nonatomic, weak) CTAssetsPickerController *picker;
 @property (nonatomic, strong) NSMutableArray *assets;
-
+@property (nonatomic, readwrite) BOOL isDefaultGroup;
 @end
 
 
@@ -79,6 +81,9 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
         
         [self.collectionView registerClass:CTAssetsViewCell.class
                 forCellWithReuseIdentifier:CTAssetsViewCellIdentifier];
+
+        [self.collectionView registerClass:CTAssetsCameraViewCell.class
+                forCellWithReuseIdentifier:CTAssetsCameraViewCellIdentifier];
         
         [self.collectionView registerClass:CTAssetsSupplementaryView.class
                 forSupplementaryViewOfKind:UICollectionElementKindSectionFooter
@@ -159,6 +164,7 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 - (void)setupAssets
 {
     self.title = [self.assetsGroup valueForProperty:ALAssetsGroupPropertyName];
+    self.isDefaultGroup = [[self.assetsGroup valueForProperty:ALAssetsGroupPropertyType] integerValue] == ALAssetsGroupSavedPhotos;
     
     if (!self.assets)
         self.assets = [[NSMutableArray alloc] init];
@@ -307,10 +313,15 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
         CGPoint point           = [longPress locationInView:self.collectionView];
         NSIndexPath *indexPath  = [self.collectionView indexPathForItemAtPoint:point];
 
-        CTAssetsPageViewController *vc = [[CTAssetsPageViewController alloc] initWithAssets:self.assets];
-        vc.pageIndex = indexPath.item;
+        if (indexPath.row > 0) {
+            NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row
+                                                              inSection:indexPath.section];
+            
+            CTAssetsPageViewController *vc = [[CTAssetsPageViewController alloc] initWithAssets:self.assets];
+            vc.pageIndex = offsetIndexPath.row;
 
-        [self.navigationController pushViewController:vc animated:YES];
+            [self.navigationController pushViewController:vc animated:YES];
+        }
     }
 }
 
@@ -369,16 +380,28 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
-    return self.assets.count;
+    if (self.isDefaultGroup) {
+        return self.assets.count + 1;
+    }
+    else {
+        return self.assets.count;
+    }
 }
 
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
+    if (self.isDefaultGroup && indexPath.row == 0) {
+        UICollectionViewCell* cameraCell = [collectionView dequeueReusableCellWithReuseIdentifier:CTAssetsCameraViewCellIdentifier
+                                                                                     forIndexPath:indexPath];
+        return cameraCell;
+    }
+    
     CTAssetsViewCell *cell =
     [collectionView dequeueReusableCellWithReuseIdentifier:CTAssetsViewCellIdentifier
                                               forIndexPath:indexPath];
     
-    ALAsset *asset = [self.assets objectAtIndex:indexPath.row];
+    NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row inSection:indexPath.section];
+    ALAsset *asset = [self.assets objectAtIndex:offsetIndexPath.row];
     
     if ([self.picker.delegate respondsToSelector:@selector(assetsPickerController:shouldEnableAsset:)])
         cell.enabled = [self.picker.delegate assetsPickerController:self.picker shouldEnableAsset:asset];
@@ -420,7 +443,13 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 - (BOOL)collectionView:(UICollectionView *)collectionView shouldSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    ALAsset *asset = [self.assets objectAtIndex:indexPath.row];
+    if (self.isDefaultGroup && indexPath.row == 0) {
+        return YES;
+    }
+    
+    NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row
+                                                      inSection:indexPath.section];
+    ALAsset *asset = [self.assets objectAtIndex:offsetIndexPath.row];
     
     CTAssetsViewCell *cell = (CTAssetsViewCell *)[collectionView cellForItemAtIndexPath:indexPath];
     
@@ -434,7 +463,16 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    ALAsset *asset = [self.assets objectAtIndex:indexPath.row];
+    if (self.isDefaultGroup && indexPath.row == 0) {
+        if ([self.picker.delegate respondsToSelector:@selector(assetsPickerControllerDidPressCamera:)])
+            [self.picker.delegate assetsPickerControllerDidPressCamera:self.picker];
+        return;
+    }
+    
+    NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row
+                                                      inSection:indexPath.section];
+    
+    ALAsset *asset = [self.assets objectAtIndex:offsetIndexPath.row];
     
     [self.picker selectAsset:asset];
     
@@ -444,7 +482,14 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 - (BOOL)collectionView:(UICollectionView *)collectionView shouldDeselectItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    ALAsset *asset = [self.assets objectAtIndex:indexPath.row];
+    if (self.isDefaultGroup && indexPath.row == 0) {
+        return YES;
+    }
+    
+    NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row
+                                                      inSection:indexPath.section];
+    
+    ALAsset *asset = [self.assets objectAtIndex:offsetIndexPath.row];
     
     if ([self.picker.delegate respondsToSelector:@selector(assetsPickerController:shouldDeselectAsset:)])
         return [self.picker.delegate assetsPickerController:self.picker shouldDeselectAsset:asset];
@@ -454,7 +499,14 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 - (void)collectionView:(UICollectionView *)collectionView didDeselectItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    ALAsset *asset = [self.assets objectAtIndex:indexPath.row];
+    if (self.isDefaultGroup && indexPath.row == 0) {
+        return;
+    }
+    
+    NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row
+                                                      inSection:indexPath.section];
+    
+    ALAsset *asset = [self.assets objectAtIndex:offsetIndexPath.row];
     
     [self.picker deselectAsset:asset];
     
@@ -464,7 +516,14 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 - (BOOL)collectionView:(UICollectionView *)collectionView shouldHighlightItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    ALAsset *asset = [self.assets objectAtIndex:indexPath.row];
+    if (self.isDefaultGroup && indexPath.row == 0) {
+        return YES;
+    }
+    
+    NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row
+                                                      inSection:indexPath.section];
+    
+    ALAsset *asset = [self.assets objectAtIndex:offsetIndexPath.row];
     
     if ([self.picker.delegate respondsToSelector:@selector(assetsPickerController:shouldHighlightAsset:)])
         return [self.picker.delegate assetsPickerController:self.picker shouldHighlightAsset:asset];
@@ -474,7 +533,14 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 - (void)collectionView:(UICollectionView *)collectionView didHighlightItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    ALAsset *asset = [self.assets objectAtIndex:indexPath.row];
+    if (self.isDefaultGroup && indexPath.row == 0) {
+        return;
+    }
+    
+    NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row
+                                                      inSection:indexPath.section];
+    
+    ALAsset *asset = [self.assets objectAtIndex:offsetIndexPath.row];
     
     if ([self.picker.delegate respondsToSelector:@selector(assetsPickerController:didHighlightAsset:)])
         [self.picker.delegate assetsPickerController:self.picker didHighlightAsset:asset];
@@ -482,7 +548,14 @@ NSString * const CTAssetsSupplementaryViewIdentifier = @"CTAssetsSupplementaryVi
 
 - (void)collectionView:(UICollectionView *)collectionView didUnhighlightItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    ALAsset *asset = [self.assets objectAtIndex:indexPath.row];
+    if (self.isDefaultGroup && indexPath.row == 0) {
+        return;
+    }
+    
+    NSIndexPath* offsetIndexPath = [NSIndexPath indexPathForRow:self.isDefaultGroup? indexPath.row - 1 : indexPath.row
+                                                      inSection:indexPath.section];
+    
+    ALAsset *asset = [self.assets objectAtIndex:offsetIndexPath.row];
     
     if ([self.picker.delegate respondsToSelector:@selector(assetsPickerController:didUnhighlightAsset:)])
         [self.picker.delegate assetsPickerController:self.picker didUnhighlightAsset:asset];
