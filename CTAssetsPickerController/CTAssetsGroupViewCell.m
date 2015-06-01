@@ -51,6 +51,16 @@
         self.isAccessibilityElement             = YES;
         self.textLabel.backgroundColor          = self.backgroundColor;
         self.detailTextLabel.backgroundColor    = self.backgroundColor;
+        self.detailTextLabel.textColor          = [UIColor colorWithRed:0.506 green:0.502 blue:0.490 alpha:1.000];
+        
+        UIView *bottomBorder = [[UIView alloc] init];
+        bottomBorder.backgroundColor = [UIColor colorWithHexString:@"eeeeee"];
+        [self.contentView addSubview:bottomBorder];
+        PREPCONSTRAINTS(bottomBorder);
+        ALIGN_BOTTOM(bottomBorder, 0);
+        CONSTRAIN_HEIGHT(bottomBorder, 1.0 / [UIScreen mainScreen].scale);
+        ALIGN_LEFT(bottomBorder, 0);
+        ALIGN_RIGHT(bottomBorder, -40);
     }
     
     return self;
@@ -68,8 +78,45 @@
     self.textLabel.text         = [assetsGroup valueForProperty:ALAssetsGroupPropertyName];
     self.accessoryType          = UITableViewCellAccessoryDisclosureIndicator;
     
-    if (showNumberOfAssets)
-        self.detailTextLabel.text = [NSString stringWithFormat:@"%ld", (long)assetsGroup.numberOfAssets];
+    if (showNumberOfAssets) {
+        NSNumberFormatter *numberFormatter = [[NSNumberFormatter alloc] init];
+        [numberFormatter setLocale:[NSLocale currentLocale]];
+        [numberFormatter setNumberStyle:NSNumberFormatterDecimalStyle];
+        [numberFormatter setMaximumFractionDigits:0];
+        NSString *theString = [numberFormatter stringFromNumber:[NSNumber numberWithInteger:assetsGroup.numberOfAssets]];
+        self.detailTextLabel.text = [NSString stringWithFormat:@"%@ Photo%@", theString, (assetsGroup.numberOfAssets > 1 ? @"s": @"")];
+    }
+}
+
+- (void) layoutSubviews
+{
+    [super layoutSubviews];
+    // Makes imageView get placed in the corner
+    self.imageView.frame = CGRectMake( 0, 0, 64, 64);
+    
+    // Get textlabel frame
+    //self.textLabel.backgroundColor = [UIColor blackColor];
+    CGRect textlabelFrame = self.textLabel.frame;
+    
+    // Figure out new width
+    textlabelFrame.size.width = textlabelFrame.size.width + textlabelFrame.origin.x - 75;
+    // Change origin to what we want
+    textlabelFrame.origin.x = 75;
+    
+    // Assign the the new frame to textLabel
+    self.textLabel.frame = textlabelFrame;
+
+    // Get textlabel frame
+    //self.textLabel.backgroundColor = [UIColor blackColor];
+    CGRect detailTextLabelFrame = self.detailTextLabel.frame;
+    
+    // Figure out new width
+    detailTextLabelFrame.size.width = detailTextLabelFrame.size.width + detailTextLabelFrame.origin.x - 75;
+    // Change origin to what we want
+    detailTextLabelFrame.origin.x = 75;
+    
+    // Assign the the new frame to textLabel
+    self.detailTextLabel.frame = detailTextLabelFrame;
 }
 
 

@@ -113,7 +113,7 @@
 
 - (void)setupViews
 {
-    self.tableView.rowHeight = CTAssetThumbnailLength + 12;
+    self.tableView.rowHeight = 64;
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
 }
 
